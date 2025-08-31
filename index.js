@@ -1,5 +1,8 @@
 import * as p from '@clack/prompts';
 import { execa } from 'execa';
+import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 try {
     const { stdout: statusOutput } = await execa('git', ['status', '--porcelain']);
@@ -53,8 +56,8 @@ const commit_info = await p.group(
         }),
 
         extended_description: () => p.text({
-            message: 'Provide a longer description of the change:',
-            placeholder: 'press enter to leave it  empty',
+            message: 'Provide a longer description of the change (use | to separate lines):',
+            placeholder: 'First line|Second line|Third line (press enter to skip)',
         }),
 
         isBreaking: () => p.confirm({
@@ -73,7 +76,8 @@ const commit_info = await p.group(
 let breakingChanges = null;
 if (commit_info.isBreaking) {
     breakingChanges = await p.text({
-        message: 'Describe the breaking changes:',
+        message: 'Describe the breaking changes (use | to separate lines):',
+        placeholder: 'First line|Second line (press enter to skip)',
         validate(value) {
             if (value.length === 0) return 'Breaking changes description is required';
             if (value.length < 10) return 'Description must be at least 10 characters';
@@ -107,15 +111,18 @@ function buildCommitMessage() {
     commitMsg += `${commit_info.commit_type}${scope}${breakingIndicator}: ${commit_info.description}\n`;
 
     if (commit_info.extended_description && commit_info.extended_description.trim()) {
-        commitMsg += `\n${commit_info.extended_description.trim()}\n`;
+        const formattedDescription = commit_info.extended_description.trim().replace(/\|/g, '\n');
+        commitMsg += `\n${formattedDescription}\n`;
     }
 
     if (commit_info.isBreaking && breakingChanges && breakingChanges.trim()) {
-        commitMsg += `\nBREAKING CHANGE: ${breakingChanges.trim()}\n`;
+        const formattedBreakingChanges = breakingChanges.trim().replace(/\|/g, '\n');
+        commitMsg += `\nBREAKING CHANGE: ${formattedBreakingChanges}\n`;
     }
 
     if (solvesIssues && issueReferences && issueReferences.trim()) {
-        commitMsg += `\nCloses: ${issueReferences.trim()}\n`;
+        const formattedIssueRefs = issueReferences.trim().replace(/\|/g, '\n');
+        commitMsg += `\nCloses: ${formattedIssueRefs}\n`;
     }
 
     return commitMsg;
@@ -135,17 +142,37 @@ if (proceed) {
         const spinner = p.spinner();
         spinner.start('Committing changes...');
 
-        const { stdout, stderr } = await execa('git', ['commit', '-m', final_commit_msg.split('\n')[0]]);
-
-        spinner.stop(' Commit successful!');
-
-        if (stdout) {
-            console.log(stdout);
-        }
+        let commitCommand;
+        let commitArgs;
 
         if (final_commit_msg.split('\n').length > 1) {
-            console.log('\n Tip: To include the full message with description, you can amend:');
-            console.log('git commit --amend');
+            const tempFile = join(tmpdir(), `commit-msg-${Date.now()}.txt`);
+            writeFileSync(tempFile, final_commit_msg, 'utf8');
+
+            commitCommand = 'git';
+            commitArgs = ['commit', '-F', tempFile];
+
+            try {
+                const { stdout, stderr } = await execa(commitCommand, commitArgs);
+                spinner.stop(' Commit successful!');
+
+                if (stdout) {
+                    console.log(stdout);
+                }
+
+                unlinkSync(tempFile);
+
+            } catch (error) {
+                try { unlinkSync(tempFile); } catch { }
+                throw error;
+            }
+        } else {
+            const { stdout, stderr } = await execa('git', ['commit', '-m', final_commit_msg]);
+            spinner.stop(' Commit successful!');
+
+            if (stdout) {
+                console.log(stdout);
+            }
         }
 
     } catch (error) {
@@ -158,11 +185,13 @@ if (proceed) {
 
         console.log('\n Manual steps:');
         console.log('1. Copy the commit message above');
-        console.log('2. Run: git commit -m "your message"');
+        console.log('2. Run: git commit -F commit_message.txt');
+        console.log('3. Or create a file with your message and use git commit -F <filename>');
     }
 } else {
     console.log('\n Next steps:');
     console.log('1. Copy the commit message above');
-    console.log('2. Run: git commit -m "your message"');
-    console.log('3. Or run the script again to modify');
+    console.log('2. For multi-line: git commit -F commit_message.txt');
+    console.log('3. For single-line: git commit -m "your message"');
+    console.log('4. Or run the script again to modify');
 }
