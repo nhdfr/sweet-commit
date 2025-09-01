@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import * as p from '@clack/prompts';
 import { execa } from 'execa';
 import { writeFileSync, unlinkSync } from 'fs';
