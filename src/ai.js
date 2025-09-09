@@ -61,6 +61,7 @@ Commit Message:`;
     spinner.stop("Commit message generated.");
 
     text = text.replace(/\r\n/g, "\n");
+    text = text.replace(/^```(?:[a-z]+)?\n?([\s\S]*?)\n?```$/, "$1");
     text = text.replace(/\n{2,}/g, "\n");
     text = text.trim();
 
