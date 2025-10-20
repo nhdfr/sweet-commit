@@ -1,7 +1,7 @@
 {
   "name": "sweet-commit",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "AI-powered commit messages that just work. One command, perfect commits, every time.",
   "main": "index.js",
   "type": "module",
   "bin": {
@@ -11,15 +11,28 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "git",
+    "commit",
+    "conventional-commits",
+    "ai",
+    "gemini",
+    "cli",
+    "automation",
+    "developer-tools"
+  ],
+  "author": "d3xfoo",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nhdfr/sweet-commit.git"
+  },
+  "homepage": "https://github.com/nhdfr/sweet-commit",
+  "bugs": {
+    "url": "https://github.com/nhdfr/sweet-commit/issues"
+  },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
-    "@google/generative-ai": "^0.24.1",
-    "chalk": "^5.6.0",
-    "dotenv": "^17.2.2",
-    "execa": "^9.6.0",
-    "inquirer": "^12.9.4"
+    "@google/genai": "^1.25.0"
   }
 }
