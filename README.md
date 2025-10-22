@@ -2,6 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/sweet-commit)](https://www.npmjs.com/package/sweet-commit)
 
+<kbd><img src="./extra/sweet_commit_final.gif" /></kbd>
+
 AI-powered commit messages that just work. One command, perfect commits, every time.
 
 ## Installation
@@ -28,16 +30,33 @@ The tool will analyze your staged changes, generate a conventional commit messag
 
 Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and configure it:
 
-**Option 1: Environment variable**
-```bash
-export GEMINI_API_KEY="your-api-key-here"
-```
-
-**Option 2: .env file**
+**Option 1: .env file (Recommended)**
 Create a `.env` file in your project:
 ```
 GEMINI_API_KEY=your-api-key-here
 ```
+
+**Option 2: Environment variable**
+```bash
+export GEMINI_API_KEY="your-api-key-here"
+```
+
+**Option 3: Permanent setup (Not recommended)**
+Add to your shell profile for system-wide access:
+
+For bash users:
+```bash
+echo 'export GEMINI_API_KEY="your-api-key-here"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+For zsh users:
+```bash
+echo 'export GEMINI_API_KEY="your-api-key-here"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Warning:** This stores your API key permanently in your shell profile. Only use this if you understand the security implications and are on a personal, secure machine.
 
 ## Features
 
