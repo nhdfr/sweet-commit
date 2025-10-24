@@ -1,6 +1,6 @@
 {
   "name": "sweet-commit",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "AI-powered commit messages that just work. One command, perfect commits, every time.",
   "main": "index.js",
   "type": "module",

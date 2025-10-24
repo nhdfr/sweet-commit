@@ -2,8 +2,6 @@
 
 [![npm version](https://img.shields.io/npm/v/sweet-commit)](https://www.npmjs.com/package/sweet-commit)
 
-<kbd><img src="./extra/sweet_commit_final.gif" /></kbd>
-
 AI-powered commit messages that just work. One command, perfect commits, every time.
 
 ## Installation
