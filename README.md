@@ -13,6 +13,7 @@ npm install -g sweet-commit
 ## Usage
 
 1. Stage your changes:
+
    ```bash
    git add .
    ```
@@ -24,17 +25,40 @@ npm install -g sweet-commit
 
 The tool will analyze your staged changes, generate a conventional commit message using AI, show it to you, and commit after confirmation.
 
+### Advanced usage
+
+You can now automate the full add → commit → push flow using the new flags:
+
+```bash
+  # Automatically add all changes, generate AI commit message, and push
+  scom --add-and-push
+```
+
+# Same as above, but skip confirmation prompt
+
+```
+scom --add-and-push --yes
+```
+
+**Flags**
+
+`--add-and-push` or `--ap`: Automatically stages changes (`git add .`) and pushes after committing.
+`--yes` or `-y`: Skips the confirmation prompt and commits immediately.
+These options make it easy to use _sweet-commit_ in fast development loops or CI scripts where you want non-interactive automation.
+
 ## Setup
 
 Get your Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey) and configure it:
 
 **Option 1: .env file (Recommended)**
 Create a `.env` file in your project:
+
 ```
 GEMINI_API_KEY=your-api-key-here
 ```
 
 **Option 2: Environment variable**
+
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
 ```
@@ -43,12 +67,14 @@ export GEMINI_API_KEY="your-api-key-here"
 Add to your shell profile for system-wide access:
 
 For bash users:
+
 ```bash
 echo 'export GEMINI_API_KEY="your-api-key-here"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 For zsh users:
+
 ```bash
 echo 'export GEMINI_API_KEY="your-api-key-here"' >> ~/.zshrc
 source ~/.zshrc
