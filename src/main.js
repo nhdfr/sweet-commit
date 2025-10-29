@@ -16,6 +16,20 @@ const DIFF_CONFIG = {
   maxBuffer: 50 * 1024 * 1024,
 };
 
+// ** Parse Arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const flags = {
+    addAndPush: false,
+    yes: false,
+  };
+  for (const a of args) {
+    if (a === "--add-and-push" || a === "--ap") flags.addAndPush = true;
+    else if (a === "--yes" || a === "-y") flags.yes = true;
+  }
+  return flags;
+}
+
 async function execGit(command, options = {}) {
   try {
     const { stdout } = await execPromise(command, {
@@ -26,7 +40,7 @@ async function execGit(command, options = {}) {
   } catch (error) {
     if (error.message.includes("maxBuffer length exceeded")) {
       throw new Error(
-        `The changeset is extremely large (>50MB). Consider committing files in smaller batches.`,
+        `The changeset is extremely large (>50MB). Consider committing files in smaller batches.`
       );
     }
     throw error;
@@ -43,12 +57,12 @@ async function checkStagedChanges() {
           line.startsWith("A ") ||
           line.startsWith("M ") ||
           line.startsWith("D ") ||
-          line.startsWith("R "),
+          line.startsWith("R ")
       );
 
     if (!hasStagedChanges) {
       p.cancel(
-        "No staged changes found. Stage your changes first with: git add .",
+        "No staged changes found. Stage your changes first with: git add ."
       );
       process.exit(1);
     }
@@ -90,7 +104,7 @@ async function getStagedDiff() {
         return `LARGE_CHANGESET_SUMMARY\n\nStatistics:\n${stats}\n\nDetailed changes:\n${numstat}`;
       } catch (fallbackError) {
         p.cancel(
-          "Unable to process this changeset - it's too large even for statistical analysis. Try committing files in smaller batches.",
+          "Unable to process this changeset - it's too large even for statistical analysis. Try committing files in smaller batches."
         );
         process.exit(1);
       }
@@ -171,7 +185,7 @@ function createOptimizedDiff(originalDiff) {
   if (originalDiff.startsWith("LARGE_CHANGESET_SUMMARY")) {
     return originalDiff.replace(
       "LARGE_CHANGESET_SUMMARY\n\n",
-      "Extremely large changeset - statistical summary:\n\n",
+      "Extremely large changeset - statistical summary:\n\n"
     );
   }
 
@@ -202,7 +216,9 @@ function createOptimizedDiff(originalDiff) {
   }
 
   if (analysis.files.length > filesToShow.length) {
-    optimizedDiff += `... and ${analysis.files.length - filesToShow.length} more files\n\n`;
+    optimizedDiff += `... and ${
+      analysis.files.length - filesToShow.length
+    } more files\n\n`;
   }
 
   if (optimizedDiff.length > DIFF_CONFIG.maxTokens) {
@@ -227,7 +243,9 @@ function createOptimizedDiff(originalDiff) {
       if (info.files.length <= 3) {
         optimizedDiff += `    Files: ${info.files.join(", ")}\n`;
       } else {
-        optimizedDiff += `    Files: ${info.files.slice(0, 2).join(", ")}, ...and ${info.files.length - 2} more\n`;
+        optimizedDiff += `    Files: ${info.files
+          .slice(0, 2)
+          .join(", ")}, ...and ${info.files.length - 2} more\n`;
       }
     });
 
@@ -260,7 +278,9 @@ async function generateCommitMessage(apiKey, diff) {
       spinner.message("Large changeset detected, using optimized analysis...");
     }
 
-    const prompt = `Generate a conventional commit message based on this git ${isOptimized ? "change summary" : "diff"}.
+    const prompt = `Generate a conventional commit message based on this git ${
+      isOptimized ? "change summary" : "diff"
+    }.
 
 Rules:
 - Use conventional commit format: type(scope): description
@@ -269,7 +289,11 @@ Rules:
 - Use imperative mood (add, fix, update, not added, fixed, updated)
 - Add a body with bullet points if needed, max 72 chars per line
 - No markdown formatting, just plain text
-${isOptimized ? "- This is a summarized view of a large changeset, focus on the overall impact" : ""}
+${
+  isOptimized
+    ? "- This is a summarized view of a large changeset, focus on the overall impact"
+    : ""
+}
 
 ${isOptimized ? "Change summary" : "Git diff"}:
 ${optimizedDiff}
@@ -393,9 +417,21 @@ export async function main() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     p.cancel(
-      "GEMINI_API_KEY not found. Get your key from: https://aistudio.google.com/app/apikey",
+      "GEMINI_API_KEY not found. Get your key from: https://aistudio.google.com/app/apikey"
     );
     process.exit(1);
+  }
+
+  const flags = parseArgs();
+
+  if (flags.addAndPush) {
+    p.note("Flag --add-and-push detected. Running: git add .", "Auto-add");
+    try {
+      await execGit("git add .");
+    } catch (err) {
+      p.cancel(`Failed to run 'git add .': ${err.message}`);
+      process.exit(1);
+    }
   }
 
   await checkStagedChanges();
@@ -409,11 +445,13 @@ export async function main() {
   else if (changesetSize > 5) sizeDescription = "medium";
 
   p.note(
-    `Analyzing ${sizeDescription} changeset with ${changesetSize} file${changesetSize === 1 ? "" : "s"}...\n` +
+    `Analyzing ${sizeDescription} changeset with ${changesetSize} file${
+      changesetSize === 1 ? "" : "s"
+    }...\n` +
       `${fileStats.filter((f) => f.status === "A").length} added, ` +
       `${fileStats.filter((f) => f.status === "M").length} modified, ` +
       `${fileStats.filter((f) => f.status === "D").length} deleted`,
-    "Changeset Overview",
+    "Changeset Overview"
   );
 
   const diff = await getStagedDiff();
@@ -429,14 +467,14 @@ export async function main() {
         `Extremely large changeset detected!\n` +
           `Using statistical analysis instead of full diff.\n` +
           `This ensures reliable commit message generation.`,
-        "Smart Analysis",
+        "Smart Analysis"
       );
     } else {
       p.note(
         `Large changeset detected (${sizeMB}MB)\n` +
           `Using intelligent summarization to optimize for AI analysis.\n` +
           `Key changes and patterns will be preserved.`,
-        "Optimization Active",
+        "Optimization Active"
       );
     }
   }
@@ -445,19 +483,42 @@ export async function main() {
 
   p.note(message, "Generated commit message");
 
-  let shouldCommit;
-  try {
-    shouldCommit = await p.confirm({
-      message: "Commit with this message?",
-      initialValue: true,
-    });
-  } catch (error) {
-    p.cancel("Operation cancelled.");
-    process.exit(130);
+  let shouldCommit = true;
+  if (!flags.yes) {
+    try {
+      shouldCommit = await p.confirm({
+        message: "Commit with this message?",
+        initialValue: true,
+      });
+    } catch (error) {
+      p.cancel("Operation cancelled.");
+      process.exit(130);
+    }
   }
 
   if (shouldCommit === true) {
     await commitChanges(message);
+
+    // If user requested add-and-push, push now
+    if (flags.addAndPush) {
+      p.note("Pushing to remote...", "Auto-push");
+      try {
+        // try a simple push first
+        await execGit("git push");
+      } catch (pushErr) {
+        // if push failed due to no upstream, try setting upstream
+        try {
+          const branch = (
+            await execGit("git rev-parse --abbrev-ref HEAD")
+          ).trim();
+          await execGit(`git push --set-upstream origin ${branch}`);
+        } catch (err2) {
+          p.cancel(`Push failed: ${pushErr.message}`);
+          process.exit(1);
+        }
+      }
+    }
+
     p.outro("Done!");
   } else {
     p.cancel("Commit cancelled.");
