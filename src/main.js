@@ -1,10 +1,10 @@
-import fs from "fs/promises";
-import path from "path";
-import os from "os";
-import * as p from "@clack/prompts";
-import { GoogleGenAI } from "@google/genai";
-import { exec } from "child_process";
-import { promisify } from "util";
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+import * as p from '@clack/prompts';
+import { GoogleGenAI } from '@google/genai';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 const execPromise = promisify(exec);
 
@@ -24,8 +24,8 @@ function parseArgs() {
     yes: false,
   };
   for (const a of args) {
-    if (a === "--add-and-push" || a === "--ap") flags.addAndPush = true;
-    else if (a === "--yes" || a === "-y") flags.yes = true;
+    if (a === '--add-and-push' || a === '--ap') flags.addAndPush = true;
+    else if (a === '--yes' || a === '-y') flags.yes = true;
   }
   return flags;
 }
@@ -38,9 +38,9 @@ async function execGit(command, options = {}) {
     });
     return stdout;
   } catch (error) {
-    if (error.message.includes("maxBuffer length exceeded")) {
+    if (error.message.includes('maxBuffer length exceeded')) {
       throw new Error(
-        `The changeset is extremely large (>50MB). Consider committing files in smaller batches.`
+        `The changeset is extremely large (>50MB). Consider committing files in smaller batches.`,
       );
     }
     throw error;
@@ -49,21 +49,19 @@ async function execGit(command, options = {}) {
 
 async function checkStagedChanges() {
   try {
-    const stdout = await execGit("git status --porcelain");
+    const stdout = await execGit('git status --porcelain');
     const hasStagedChanges = stdout
-      .split("\n")
+      .split('\n')
       .some(
         (line) =>
-          line.startsWith("A ") ||
-          line.startsWith("M ") ||
-          line.startsWith("D ") ||
-          line.startsWith("R ")
+          line.startsWith('A ') ||
+          line.startsWith('M ') ||
+          line.startsWith('D ') ||
+          line.startsWith('R '),
       );
 
     if (!hasStagedChanges) {
-      p.cancel(
-        "No staged changes found. Stage your changes first with: git add ."
-      );
+      p.cancel('No staged changes found. Stage your changes first with: git add .');
       process.exit(1);
     }
   } catch (error) {
@@ -74,13 +72,13 @@ async function checkStagedChanges() {
 
 async function getFileStats() {
   try {
-    const stdout = await execGit("git diff --cached --name-status");
+    const stdout = await execGit('git diff --cached --name-status');
     const files = stdout
-      .split("\n")
+      .split('\n')
       .filter((line) => line.trim())
       .map((line) => {
-        const [status, ...pathParts] = line.split("\t");
-        return { status, path: pathParts.join("\t") };
+        const [status, ...pathParts] = line.split('\t');
+        return { status, path: pathParts.join('\t') };
       });
     return files;
   } catch (error) {
@@ -91,20 +89,20 @@ async function getFileStats() {
 
 async function getStagedDiff() {
   try {
-    const stdout = await execGit("git diff --cached");
+    const stdout = await execGit('git diff --cached');
     return stdout;
   } catch (error) {
-    if (error.message.includes("extremely large")) {
-      p.note(error.message, "Large Changeset Warning");
+    if (error.message.includes('extremely large')) {
+      p.note(error.message, 'Large Changeset Warning');
 
       try {
-        const stats = await execGit("git diff --cached --stat");
-        const numstat = await execGit("git diff --cached --numstat");
+        const stats = await execGit('git diff --cached --stat');
+        const numstat = await execGit('git diff --cached --numstat');
 
         return `LARGE_CHANGESET_SUMMARY\n\nStatistics:\n${stats}\n\nDetailed changes:\n${numstat}`;
-      } catch (fallbackError) {
+      } catch {
         p.cancel(
-          "Unable to process this changeset - it's too large even for statistical analysis. Try committing files in smaller batches."
+          "Unable to process this changeset - it's too large even for statistical analysis. Try committing files in smaller batches.",
         );
         process.exit(1);
       }
@@ -116,7 +114,7 @@ async function getStagedDiff() {
 }
 
 function analyzeDiffContent(diff) {
-  const lines = diff.split("\n");
+  const lines = diff.split('\n');
   const analysis = {
     files: [],
     totalAdditions: 0,
@@ -130,7 +128,7 @@ function analyzeDiffContent(diff) {
   let contextLines = [];
 
   for (const line of lines) {
-    if (line.startsWith("diff --git")) {
+    if (line.startsWith('diff --git')) {
       if (currentFile) {
         analysis.files.push({
           ...currentFile,
@@ -142,29 +140,29 @@ function analyzeDiffContent(diff) {
 
       const match = line.match(/diff --git a\/(.*) b\/(.*)/);
       currentFile = {
-        path: match ? match[1] : "unknown",
-        type: "modified",
+        path: match ? match[1] : 'unknown',
+        type: 'modified',
       };
       additions = 0;
       deletions = 0;
       contextLines = [];
-    } else if (line.startsWith("new file mode")) {
-      if (currentFile) currentFile.type = "added";
-    } else if (line.startsWith("deleted file mode")) {
-      if (currentFile) currentFile.type = "deleted";
-    } else if (line.startsWith("+") && !line.startsWith("+++")) {
+    } else if (line.startsWith('new file mode')) {
+      if (currentFile) currentFile.type = 'added';
+    } else if (line.startsWith('deleted file mode')) {
+      if (currentFile) currentFile.type = 'deleted';
+    } else if (line.startsWith('+') && !line.startsWith('+++')) {
       additions++;
       analysis.totalAdditions++;
       if (line.length < DIFF_CONFIG.maxContextLineLength) {
         contextLines.push(line);
       }
-    } else if (line.startsWith("-") && !line.startsWith("---")) {
+    } else if (line.startsWith('-') && !line.startsWith('---')) {
       deletions++;
       analysis.totalDeletions++;
       if (line.length < DIFF_CONFIG.maxContextLineLength) {
         contextLines.push(line);
       }
-    } else if (line.startsWith("@@")) {
+    } else if (line.startsWith('@@')) {
       contextLines.push(line);
     }
   }
@@ -182,10 +180,10 @@ function analyzeDiffContent(diff) {
 }
 
 function createOptimizedDiff(originalDiff) {
-  if (originalDiff.startsWith("LARGE_CHANGESET_SUMMARY")) {
+  if (originalDiff.startsWith('LARGE_CHANGESET_SUMMARY')) {
     return originalDiff.replace(
-      "LARGE_CHANGESET_SUMMARY\n\n",
-      "Extremely large changeset - statistical summary:\n\n"
+      'LARGE_CHANGESET_SUMMARY\n\n',
+      'Extremely large changeset - statistical summary:\n\n',
     );
   }
 
@@ -210,23 +208,20 @@ function createOptimizedDiff(originalDiff) {
         optimizedDiff += `  ${line}\n`;
       });
     }
-    optimizedDiff += "\n";
+    optimizedDiff += '\n';
 
     if (optimizedDiff.length > DIFF_CONFIG.maxTokens * 0.8) break;
   }
 
   if (analysis.files.length > filesToShow.length) {
-    optimizedDiff += `... and ${
-      analysis.files.length - filesToShow.length
-    } more files\n\n`;
+    optimizedDiff += `... and ${analysis.files.length - filesToShow.length} more files\n\n`;
   }
 
   if (optimizedDiff.length > DIFF_CONFIG.maxTokens) {
     const fileTypes = {};
     analysis.files.forEach((f) => {
-      const ext = f.path.split(".").pop() || "other";
-      if (!fileTypes[ext])
-        fileTypes[ext] = { count: 0, additions: 0, deletions: 0, files: [] };
+      const ext = f.path.split('.').pop() || 'other';
+      if (!fileTypes[ext]) fileTypes[ext] = { count: 0, additions: 0, deletions: 0, files: [] };
       fileTypes[ext].count++;
       fileTypes[ext].additions += f.additions;
       fileTypes[ext].deletions += f.deletions;
@@ -241,11 +236,11 @@ function createOptimizedDiff(originalDiff) {
     Object.entries(fileTypes).forEach(([type, info]) => {
       optimizedDiff += `  ${type}: ${info.count} files (+${info.additions}/-${info.deletions})\n`;
       if (info.files.length <= 3) {
-        optimizedDiff += `    Files: ${info.files.join(", ")}\n`;
+        optimizedDiff += `    Files: ${info.files.join(', ')}\n`;
       } else {
-        optimizedDiff += `    Files: ${info.files
-          .slice(0, 2)
-          .join(", ")}, ...and ${info.files.length - 2} more\n`;
+        optimizedDiff += `    Files: ${info.files.slice(0, 2).join(', ')}, ...and ${
+          info.files.length - 2
+        } more\n`;
       }
     });
 
@@ -266,7 +261,7 @@ function createOptimizedDiff(originalDiff) {
 
 async function generateCommitMessage(apiKey, diff) {
   const spinner = p.spinner();
-  spinner.start("Analyzing changes and generating commit message...");
+  spinner.start('Analyzing changes and generating commit message...');
 
   try {
     const client = new GoogleGenAI({ apiKey });
@@ -275,11 +270,11 @@ async function generateCommitMessage(apiKey, diff) {
     const isOptimized = optimizedDiff !== diff;
 
     if (isOptimized) {
-      spinner.message("Large changeset detected, using optimized analysis...");
+      spinner.message('Large changeset detected, using optimized analysis...');
     }
 
     const prompt = `Generate a conventional commit message based on this git ${
-      isOptimized ? "change summary" : "diff"
+      isOptimized ? 'change summary' : 'diff'
     }.
 
 Rules:
@@ -290,51 +285,41 @@ Rules:
 - Add a body with bullet points if needed, max 72 chars per line
 - No markdown formatting, just plain text
 ${
-  isOptimized
-    ? "- This is a summarized view of a large changeset, focus on the overall impact"
-    : ""
+  isOptimized ? '- This is a summarized view of a large changeset, focus on the overall impact' : ''
 }
 
-${isOptimized ? "Change summary" : "Git diff"}:
+${isOptimized ? 'Change summary' : 'Git diff'}:
 ${optimizedDiff}
 
 Return only the commit message, nothing else.`;
 
     const result = await client.models.generateContent({
-      model: "gemini-2.0-flash-001",
+      model: 'gemini-2.0-flash-001',
       contents: prompt,
     });
 
     let message = result.text.trim();
 
-    message = message.replace(/^```[\s\S]*?\n/, "").replace(/\n```$/, "");
-    message = message.replace(/\*\*(.*?)\*\*/g, "$1");
+    message = message.replace(/^```[\s\S]*?\n/, '').replace(/\n```$/, '');
+    message = message.replace(/\*\*(.*?)\*\*/g, '$1');
 
-    spinner.stop("Commit message generated!");
+    spinner.stop('Commit message generated!');
     return message;
   } catch (error) {
-    spinner.stop("Failed to generate commit message.");
+    spinner.stop('Failed to generate commit message.');
 
-    let userFriendlyMessage = "Unable to generate commit message";
+    let userFriendlyMessage = 'Unable to generate commit message';
 
-    if (error.message.includes("API key")) {
+    if (error.message.includes('API key')) {
+      userFriendlyMessage = 'Invalid API key. Please check your GEMINI_API_KEY.';
+    } else if (error.message.includes('quota') || error.message.includes('limit')) {
       userFriendlyMessage =
-        "Invalid API key. Please check your GEMINI_API_KEY.";
-    } else if (
-      error.message.includes("quota") ||
-      error.message.includes("limit")
-    ) {
+        'API quota exceeded. Please try again later or check your Gemini API usage.';
+    } else if (error.message.includes('network') || error.message.includes('fetch')) {
+      userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+    } else if (error.message.includes('token')) {
       userFriendlyMessage =
-        "API quota exceeded. Please try again later or check your Gemini API usage.";
-    } else if (
-      error.message.includes("network") ||
-      error.message.includes("fetch")
-    ) {
-      userFriendlyMessage =
-        "Network error. Please check your internet connection and try again.";
-    } else if (error.message.includes("token")) {
-      userFriendlyMessage =
-        "Changeset too complex for AI analysis. Try breaking it into smaller commits.";
+        'Changeset too complex for AI analysis. Try breaking it into smaller commits.';
     } else {
       userFriendlyMessage = `AI service error: ${error.message}`;
     }
@@ -346,29 +331,31 @@ Return only the commit message, nothing else.`;
 
 async function commitChanges(message) {
   if (!message || message.trim().length === 0) {
-    p.cancel("Cannot commit with empty message.");
+    p.cancel('Cannot commit with empty message.');
     process.exit(1);
   }
 
   const spinner = p.spinner();
-  spinner.start("Committing changes...");
+  spinner.start('Committing changes...');
 
   let tempFile;
   try {
     tempFile = path.join(os.tmpdir(), `scom-${Date.now()}.txt`);
-    await fs.writeFile(tempFile, message, "utf8");
+    await fs.writeFile(tempFile, message, 'utf8');
 
     await execGit(`git commit -F "${tempFile}"`);
     await fs.unlink(tempFile);
 
-    spinner.stop("Committed successfully!");
+    spinner.stop('Committed successfully!');
   } catch (error) {
-    spinner.stop("Commit failed!");
+    spinner.stop('Commit failed!');
 
     if (tempFile) {
       try {
         await fs.unlink(tempFile);
-      } catch {}
+      } catch {
+        // ignore cleanup error
+      }
     }
 
     p.cancel(`Unable to create commit: ${error.message}`);
@@ -378,56 +365,56 @@ async function commitChanges(message) {
 
 async function loadEnvFile() {
   try {
-    const envPath = path.join(process.cwd(), ".env");
-    const envContent = await fs.readFile(envPath, "utf8");
+    const envPath = path.join(process.cwd(), '.env');
+    const envContent = await fs.readFile(envPath, 'utf8');
 
-    envContent.split("\n").forEach((line) => {
+    envContent.split('\n').forEach((line) => {
       const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith("#")) {
-        const [key, ...valueParts] = trimmed.split("=");
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [key, ...valueParts] = trimmed.split('=');
         if (key && valueParts.length > 0) {
-          const value = valueParts.join("=").replace(/^["'](.*)["']$/, "$1");
+          const value = valueParts.join('=').replace(/^["'](.*)["']$/, '$1');
           process.env[key] = value;
         }
       }
     });
-  } catch (error) {}
+  } catch {
+    // ignore cleanup error
+  }
 }
 
 export async function main() {
-  process.on("SIGINT", () => {
-    p.cancel("Operation cancelled by user.");
+  process.on('SIGINT', () => {
+    p.cancel('Operation cancelled by user.');
     process.exit(130);
   });
 
-  process.on("SIGTERM", () => {
-    p.cancel("Operation terminated.");
+  process.on('SIGTERM', () => {
+    p.cancel('Operation terminated.');
     process.exit(143);
   });
 
-  process.on("unhandledRejection", (reason, promise) => {
+  process.on('unhandledRejection', (reason) => {
     p.cancel(`Unexpected error: ${reason}`);
     process.exit(1);
   });
 
-  p.intro("sweet-commit");
+  p.intro('sweet-commit');
 
   await loadEnvFile();
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    p.cancel(
-      "GEMINI_API_KEY not found. Get your key from: https://aistudio.google.com/app/apikey"
-    );
+    p.cancel('GEMINI_API_KEY not found. Get your key from: https://aistudio.google.com/app/apikey');
     process.exit(1);
   }
 
   const flags = parseArgs();
 
   if (flags.addAndPush) {
-    p.note("Flag --add-and-push detected. Running: git add .", "Auto-add");
+    p.note('Flag --add-and-push detected. Running: git add .', 'Auto-add');
     try {
-      await execGit("git add .");
+      await execGit('git add .');
     } catch (err) {
       p.cancel(`Failed to run 'git add .': ${err.message}`);
       process.exit(1);
@@ -439,59 +426,58 @@ export async function main() {
   const fileStats = await getFileStats();
 
   const changesetSize = fileStats.length;
-  let sizeDescription = "small";
-  if (changesetSize > 50) sizeDescription = "very large";
-  else if (changesetSize > 20) sizeDescription = "large";
-  else if (changesetSize > 5) sizeDescription = "medium";
+  let sizeDescription = 'small';
+  if (changesetSize > 50) sizeDescription = 'very large';
+  else if (changesetSize > 20) sizeDescription = 'large';
+  else if (changesetSize > 5) sizeDescription = 'medium';
 
   p.note(
     `Analyzing ${sizeDescription} changeset with ${changesetSize} file${
-      changesetSize === 1 ? "" : "s"
+      changesetSize === 1 ? '' : 's'
     }...\n` +
-      `${fileStats.filter((f) => f.status === "A").length} added, ` +
-      `${fileStats.filter((f) => f.status === "M").length} modified, ` +
-      `${fileStats.filter((f) => f.status === "D").length} deleted`,
-    "Changeset Overview"
+      `${fileStats.filter((f) => f.status === 'A').length} added, ` +
+      `${fileStats.filter((f) => f.status === 'M').length} modified, ` +
+      `${fileStats.filter((f) => f.status === 'D').length} deleted`,
+    'Changeset Overview',
   );
 
   const diff = await getStagedDiff();
 
   const needsOptimization =
-    diff.length > DIFF_CONFIG.maxTokens ||
-    diff.startsWith("LARGE_CHANGESET_SUMMARY");
+    diff.length > DIFF_CONFIG.maxTokens || diff.startsWith('LARGE_CHANGESET_SUMMARY');
   if (needsOptimization) {
     const sizeMB = Math.round((diff.length / 1024 / 1024) * 100) / 100;
 
-    if (diff.startsWith("LARGE_CHANGESET_SUMMARY")) {
+    if (diff.startsWith('LARGE_CHANGESET_SUMMARY')) {
       p.note(
         `Extremely large changeset detected!\n` +
           `Using statistical analysis instead of full diff.\n` +
           `This ensures reliable commit message generation.`,
-        "Smart Analysis"
+        'Smart Analysis',
       );
     } else {
       p.note(
         `Large changeset detected (${sizeMB}MB)\n` +
           `Using intelligent summarization to optimize for AI analysis.\n` +
           `Key changes and patterns will be preserved.`,
-        "Optimization Active"
+        'Optimization Active',
       );
     }
   }
 
   const message = await generateCommitMessage(apiKey, diff);
 
-  p.note(message, "Generated commit message");
+  p.note(message, 'Generated commit message');
 
   let shouldCommit = true;
   if (!flags.yes) {
     try {
       shouldCommit = await p.confirm({
-        message: "Commit with this message?",
+        message: 'Commit with this message?',
         initialValue: true,
       });
-    } catch (error) {
-      p.cancel("Operation cancelled.");
+    } catch {
+      p.cancel('Operation cancelled.');
       process.exit(130);
     }
   }
@@ -501,27 +487,25 @@ export async function main() {
 
     // If user requested add-and-push, push now
     if (flags.addAndPush) {
-      p.note("Pushing to remote...", "Auto-push");
+      p.note('Pushing to remote...', 'Auto-push');
       try {
         // try a simple push first
-        await execGit("git push");
+        await execGit('git push');
       } catch (pushErr) {
         // if push failed due to no upstream, try setting upstream
         try {
-          const branch = (
-            await execGit("git rev-parse --abbrev-ref HEAD")
-          ).trim();
+          const branch = (await execGit('git rev-parse --abbrev-ref HEAD')).trim();
           await execGit(`git push --set-upstream origin ${branch}`);
-        } catch (err2) {
+        } catch {
           p.cancel(`Push failed: ${pushErr.message}`);
           process.exit(1);
         }
       }
     }
 
-    p.outro("Done!");
+    p.outro('Done!');
   } else {
-    p.cancel("Commit cancelled.");
+    p.cancel('Commit cancelled.');
     process.exit(0);
   }
 }
