@@ -47,10 +47,53 @@ async function checkStagedChanges() {
       );
 
     if (!hasStagedChanges) {
-      p.cancel(
-        "No staged changes found. Stage your changes first with: git add .",
-      );
-      process.exit(1);
+      const hasUnstagedChanges = stdout
+        .split("\n")
+        .some(
+          (line) =>
+            line.startsWith(" M") ||
+            line.startsWith("??") ||
+            line.startsWith(" D") ||
+            line.startsWith("AM") ||
+            line.startsWith("MM"),
+        );
+
+      if (hasUnstagedChanges) {
+        p.note(
+          "No staged changes found, but you have unstaged changes.",
+          "Nothing to commit",
+        );
+
+        let shouldStageAll;
+        try {
+          shouldStageAll = await p.confirm({
+            message: "Do you want to stage all changes?",
+            initialValue: true,
+          });
+        } catch (error) {
+          p.cancel("Operation cancelled.");
+          process.exit(130);
+        }
+
+        if (p.isCancel(shouldStageAll) || shouldStageAll !== true) {
+          p.cancel("Stage your changes first with: git add <files>");
+          process.exit(0);
+        }
+
+        const spinner = p.spinner();
+        spinner.start("Staging all changes...");
+        try {
+          await execGit("git add .");
+          spinner.stop("All changes staged!");
+        } catch (error) {
+          spinner.stop("Failed to stage changes.");
+          p.cancel(`Unable to stage changes: ${error.message}`);
+          process.exit(1);
+        }
+      } else {
+        p.cancel("No changes found. Make some changes first.");
+        process.exit(1);
+      }
     }
   } catch (error) {
     p.cancel(`Unable to check git status: ${error.message}`);
@@ -246,9 +289,9 @@ function createOptimizedDiff(originalDiff) {
   return optimizedDiff;
 }
 
-async function generateCommitMessage(apiKey, diff) {
+async function generateCommitMessage(apiKey, diff, count = 3) {
   const spinner = p.spinner();
-  spinner.start("Analyzing changes and generating commit message...");
+  spinner.start("Analyzing changes and generating commit messages...");
 
   try {
     const client = new GoogleGenAI({ apiKey });
@@ -260,34 +303,49 @@ async function generateCommitMessage(apiKey, diff) {
       spinner.message("Large changeset detected, using optimized analysis...");
     }
 
-    const prompt = `Generate a conventional commit message based on this git ${isOptimized ? "change summary" : "diff"}.
+    const prompt = `Generate ${count} different conventional commit messages based on this git ${isOptimized ? "change summary" : "diff"}.
 
 Rules:
 - Use conventional commit format: type(scope): description
 - Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
-- Keep description under 50 characters
+- Keep the subject line (first line) under 72 characters
 - Use imperative mood (add, fix, update, not added, fixed, updated)
-- Add a body with bullet points if needed, max 72 chars per line
+- IMPORTANT: For significant or complex changes, add a detailed body explaining:
+  * What changed and why
+  * Key implementation details
+  * Breaking changes if any
+  * Related components or files affected
+- Body lines should wrap at 72 characters
+- Separate subject from body with a blank line
+- Use bullet points (- or *) in body for multiple points
 - No markdown formatting, just plain text
 ${isOptimized ? "- This is a summarized view of a large changeset, focus on the overall impact" : ""}
+- Provide ${count} variations with different perspectives, detail levels, or focus areas
+- One option should be concise (2-3 lines), others can be more detailed if changes warrant it
+- Separate each commit message with "---" on its own line
 
 ${isOptimized ? "Change summary" : "Git diff"}:
 ${optimizedDiff}
 
-Return only the commit message, nothing else.`;
+Return only the ${count} commit messages separated by ---, nothing else.`;
 
     const result = await client.models.generateContent({
       model: "gemini-2.0-flash-001",
       contents: prompt,
     });
 
-    let message = result.text.trim();
+    let response = result.text.trim();
 
-    message = message.replace(/^```[\s\S]*?\n/, "").replace(/\n```$/, "");
-    message = message.replace(/\*\*(.*?)\*\*/g, "$1");
+    response = response.replace(/^```[\s\S]*?\n/, "").replace(/\n```$/, "");
+    response = response.replace(/\*\*(.*?)\*\*/g, "$1");
 
-    spinner.stop("Commit message generated!");
-    return message;
+    const messages = response
+      .split(/\n---\n|^---$|---$/gm)
+      .map((msg) => msg.trim())
+      .filter((msg) => msg.length > 0);
+
+    spinner.stop("Commit messages generated!");
+    return messages.length > 0 ? messages : [response];
   } catch (error) {
     spinner.stop("Failed to generate commit message.");
 
@@ -381,7 +439,7 @@ export async function main() {
     process.exit(143);
   });
 
-  process.on("unhandledRejection", (reason, promise) => {
+  process.on("unhandledRejection", (reason) => {
     p.cancel(`Unexpected error: ${reason}`);
     process.exit(1);
   });
@@ -441,9 +499,45 @@ export async function main() {
     }
   }
 
-  const message = await generateCommitMessage(apiKey, diff);
+  const messages = await generateCommitMessage(apiKey, diff, 3);
 
-  p.note(message, "Generated commit message");
+  let selectedMessage;
+
+  if (messages.length === 1) {
+    p.note(messages[0], "Generated commit message");
+    selectedMessage = messages[0];
+  } else {
+    const colors = ["\x1b[36m", "\x1b[33m", "\x1b[35m"];
+    const reset = "\x1b[0m";
+
+    messages.forEach((msg, idx) => {
+      const colorCode = colors[idx % colors.length];
+      p.note(msg, `${colorCode}Option ${idx + 1}${reset}`);
+    });
+
+    const choices = messages.map((msg, idx) => ({
+      value: msg,
+      label: `Option ${idx + 1}`,
+      hint:
+        msg.split("\n")[0].substring(0, 60) +
+        (msg.split("\n")[0].length > 60 ? "..." : ""),
+    }));
+
+    try {
+      selectedMessage = await p.select({
+        message: "Select a commit message:",
+        options: choices,
+      });
+    } catch (error) {
+      p.cancel("Operation cancelled.");
+      process.exit(130);
+    }
+
+    if (p.isCancel(selectedMessage)) {
+      p.cancel("Operation cancelled.");
+      process.exit(0);
+    }
+  }
 
   let shouldCommit;
   try {
@@ -457,7 +551,7 @@ export async function main() {
   }
 
   if (shouldCommit === true) {
-    await commitChanges(message);
+    await commitChanges(selectedMessage);
     p.outro("Done!");
   } else {
     p.cancel("Commit cancelled.");
