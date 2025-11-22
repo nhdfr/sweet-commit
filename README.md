@@ -10,19 +10,32 @@ AI-powered commit messages that just work. One command, perfect commits, every t
 npm install -g sweet-commit
 ```
 
+## Update
+
+To update to the latest version:
+
+```bash
+npm update -g sweet-commit
+```
+
+Check your current version:
+```bash
+npm list -g sweet-commit
+```
+
 ## Usage
 
-1. Stage your changes:
-   ```bash
-   git add .
-   ```
-
-2. Generate and commit:
+1. Generate and commit (will prompt to stage if needed):
    ```bash
    scom
    ```
 
-The tool will analyze your staged changes, generate a conventional commit message using AI, show it to you, and commit after confirmation.
+The tool will:
+- Check for unstaged changes and offer to stage them automatically
+- Analyze your changes using AI
+- Generate 3 different commit message options with colored headings
+- Let you choose your preferred message
+- Commit after confirmation
 
 ## Setup
 
@@ -58,12 +71,15 @@ source ~/.zshrc
 
 ## Features
 
-- Automatic analysis of staged git changes
-- Generates conventional commit messages following best practices
-- Uses Gemini AI for intelligent commit message creation
-- Clean, minimal interface with no unnecessary output
-- Zero configuration required after API key setup
-- Supports both environment variables and .env files
+- **Multiple commit message options**: Generate 3 variations with different perspectives and detail levels
+- **Auto-stage prompt**: Automatically offers to stage unstaged changes
+- **Intelligent message generation**: Comprehensive bodies for complex changes, concise for simple ones
+- **Automatic analysis**: Analyzes staged git changes with smart optimization for large changesets
+- **Conventional commits**: Follows best practices and conventional commit format
+- **Gemini AI powered**: Uses latest Gemini AI for intelligent commit message creation
+- **Clean interface**: Minimal, beautiful CLI with no unnecessary output
+- **Zero configuration**: Works immediately after API key setup
+- **Flexible setup**: Supports environment variables and .env files
 
 ## Dependencies
 
