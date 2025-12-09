@@ -294,7 +294,7 @@ async function generateCommitMessage(apiKey, diff, count = 3) {
   spinner.start("Analyzing changes and generating commit messages...");
 
   try {
-    const client = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey });
 
     const optimizedDiff = createOptimizedDiff(diff);
     const isOptimized = optimizedDiff !== diff;
@@ -329,8 +329,8 @@ ${optimizedDiff}
 
 Return only the ${count} commit messages separated by ---, nothing else.`;
 
-    const result = await client.models.generateContent({
-      model: "gemini-2.0-flash-001",
+    const result = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
 
