@@ -32,16 +32,15 @@ npm i
 ## link the package globally
 npm link
 ```
-
-## Setup
-
-Keep your API keys ready: a primary API key and an optional fallback key (recommended).
+Keep your API keys ready for cloud providers.  
+If you use Ollama locally, no API key is required.
 The fallback is used only if the primary provider fails.
 
 Recommended free/accessible providers:
 
 - Groq: https://console.groq.com/
 - Gemini: https://aistudio.google.com/
+- Ollama (local): https://ollama.ai/ — run local models without API keys. `scom` can automatically discover installed Ollama models from your local server.
 
 Run the interactive setup:
 
@@ -52,7 +51,7 @@ scom setup
 You will be asked to choose a primary agent and an optional fallback agent.
 
 ## Usage
-
+ 
 Make some changes in your project, stage the files you want to include, and run:
 
 ```bash
@@ -115,13 +114,17 @@ Available commit styles:
 Run `scom model` to open the interactive model chooser.
 
 This command updates your global primary and fallback models, then saves them back to your config file.
-It uses the API keys already stored in your config when they are available.
-This command assumes you aleady have the API keys set, so it won't ask for them again.
+It uses the API keys already stored in your config when available.
+
 If you want to change the keys, you can edit the config file directly or re-run `scom setup`.
+
+When using Ollama, no API key is required. `scom` uses the default local Ollama endpoint unless `BASE_URL` is overridden.
+
+During generation, if the configured Ollama model is unavailable locally, `scom` can automatically fall back to an installed local model.
 
 ## Example config (.scom.conf)
 
-The setup writes a `.scom.conf` file in key=value format. Example content:
+The setup writes a `.scom.conf` file in key=value format. If you run a local Ollama server, set `BASE_URL` to its base URL (for example `http://localhost:11434`). Example content:
 
 ```ini
 GEMINI_API_KEY=your-gemini-key
@@ -137,5 +140,3 @@ defaultCommitStyle=adaptive
 ## Feature requests
 
 Please open feature requests or bug reports on the project's GitHub repository (create a new issue with a clear title and reproduction steps).
-
----

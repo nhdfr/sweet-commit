@@ -3,7 +3,11 @@ import { p } from "../prompts.js"
 import { KEY_SUPPORTED_PROVIDERS } from "./selection.js"
 
 export async function ensureProviderKey(provider, storedKeys) {
-    if (!provider || !KEY_SUPPORTED_PROVIDERS.includes(provider)) {
+    if (
+        !provider ||
+        !KEY_SUPPORTED_PROVIDERS.includes(provider) ||
+        provider === "ollama"
+    ) {
         return
     }
     if (storedKeys[provider]) {

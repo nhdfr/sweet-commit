@@ -115,18 +115,18 @@ async function main() {
     const apiKeys = getAllProviderKeys(existingConfig)
 
     const primary = await selectModel("Select primary model")
-    apiKeys[primary.provider] = await askApiKey(
-        primary.provider,
-        apiKeys[primary.provider],
-    )
+    apiKeys[primary.provider] =
+        primary.provider === "ollama"
+            ? ""
+            : await askApiKey(primary.provider, apiKeys[primary.provider])
 
     const fallback = await selectModel("Select fallback model", true)
     const fallbackModel = fallback ? fallback.model : ""
     if (fallback) {
-        apiKeys[fallback.provider] = await askApiKey(
-            fallback.provider,
-            apiKeys[fallback.provider],
-        )
+        apiKeys[fallback.provider] =
+            fallback.provider === "ollama"
+                ? ""
+                : await askApiKey(fallback.provider, apiKeys[fallback.provider])
     }
 
     for (const provider of API_KEY_PROVIDERS) {
@@ -144,6 +144,8 @@ async function main() {
     const config = `GEMINI_API_KEY=${apiKeys.gemini || ""}
 GROQ_API_KEY=${apiKeys.groq || ""}
 DEEPSEEK_API_KEY=${apiKeys.deepseek || ""}
+provider=${primary.provider}
+fallbackProvider=${fallback ? fallback.provider : ""}
 DEFAULT_MODEL=${primary.model}
 FALLBACK_MODEL=${fallbackModel}
 BASE_URL=

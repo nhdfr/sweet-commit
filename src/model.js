@@ -117,6 +117,8 @@ export async function runModelCommand(subcommand = "") {
     await ensureProviderKey(fallbackProvider, storedKeys)
 
     const { configFile } = await upsertConfigEntries({
+        provider: primaryProvider,
+        fallbackProvider,
         DEFAULT_MODEL: primaryModel,
         FALLBACK_MODEL: nextFallback,
         GEMINI_API_KEY: storedKeys.gemini || "",

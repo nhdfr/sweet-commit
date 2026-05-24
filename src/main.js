@@ -66,11 +66,9 @@ export async function main() {
             `${fileStats.filter((f) => f.status === "D").length} deleted`,
         "Changeset Overview",
     )
-    let diff = await getStagedDiff()
-    const diffLines = diff.split("\n")
-    if (diffLines.length > 200) {
-        diff = diffLines.slice(0, 200).join("\n") + "\n...diff truncated..."
-    }
+    const diff = await getStagedDiff()
+
+    // console.log("Staged diff:\n", diff)
 
     if (!commitStyle) {
         commitStyle = await selectCommitStyle()
@@ -82,7 +80,10 @@ export async function main() {
 
     const history = createMessageHistory()
 
-    const generateAndPush = async () => {
+    const generateAndPush = async (
+        refinementNote = "",
+        styleOverride = commitStyle,
+    ) => {
         const selectedAgent = agents.find(
             (agent) => agent.name === selectedAgentName,
         )
@@ -96,11 +97,13 @@ export async function main() {
             `Generating commit message with ${selectedAgent.name} (${selectedAgent.provider}/${selectedAgent.model})...`,
         )
         try {
+            // console.log("Generating for the diff:\n", diff)
             const message = await generateCommitMessage(
                 selectedAgent,
                 diff,
-                commitStyle,
+                styleOverride,
                 humanLikeCommit,
+                refinementNote,
             )
             spinner.stop()
             history.push({ message, agent: selectedAgent })
@@ -127,6 +130,11 @@ export async function main() {
                 value: "again",
                 label: "Generate Again",
                 hint: "Regenerate message",
+            },
+            {
+                value: "refine",
+                label: "Refine with Note",
+                hint: "Add optional guidance for the next generation",
             },
         ]
         if (history.hasPrev()) {
@@ -166,6 +174,22 @@ export async function main() {
         }
         if (action === "again") {
             await generateAndPush()
+            continue
+        }
+        if (action === "refine") {
+            const refinementNote = await p.text({
+                message: "Optional guidance for AI (leave empty to skip)",
+                placeholder:
+                    "example: this one focuses on config changes too much, try to focus more on the added feature",
+            })
+            if (p.isCancel(refinementNote)) {
+                p.cancel("Operation cancelled.")
+                process.exit(0)
+            }
+            await generateAndPush(
+                String(refinementNote || "").trim(),
+                commitStyle,
+            )
             continue
         }
         if (action === "prev") {

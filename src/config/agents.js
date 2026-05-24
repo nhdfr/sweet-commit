@@ -10,6 +10,11 @@ import {
 export function resolveAiAgents(config) {
     const { defaultModel, fallbackModel } = getGlobalModelPreferences(config)
     const requestedProvider = normalizeProvider(config.provider)
+    const requestedFallbackProvider = String(
+        getValue(config, ["FALLBACK_PROVIDER", "fallbackProvider"], ""),
+    )
+        .trim()
+        .toLowerCase()
     const baseUrlOverride = getValue(config, ["BASE_URL", "baseUrl"], "")
 
     const primaryModel =
@@ -23,7 +28,9 @@ export function resolveAiAgents(config) {
         getValue(config, ["apiKey"], "")
 
     const fallbackProvider = fallbackModel
-        ? getModelProvider(fallbackModel) || primaryProvider
+        ? requestedFallbackProvider ||
+          getModelProvider(fallbackModel) ||
+          primaryProvider
         : ""
 
     const rawFallbackApiKey = fallbackModel
@@ -63,7 +70,9 @@ export function resolveAiAgents(config) {
     ]
 
     return {
-        agents: agents.filter((agent) => agent.apiKey),
+        agents: agents.filter(
+            (agent) => agent.provider === "ollama" || agent.apiKey,
+        ),
         defaultAgentName: "primary",
         providerDefaults: PROVIDER_DEFAULTS,
     }

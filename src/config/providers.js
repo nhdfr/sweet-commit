@@ -43,5 +43,6 @@ export function getAllProviderKeys(config) {
         gemini: getProviderApiKey(config, "gemini"),
         groq: getProviderApiKey(config, "groq"),
         deepseek: getProviderApiKey(config, "deepseek"),
+        ollama: "" /* Ollama doesn't use API keys */,
     }
 }

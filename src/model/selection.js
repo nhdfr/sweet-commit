@@ -2,7 +2,7 @@ import { getModelProvider } from "../utils.js"
 import { p } from "../prompts.js"
 import { toSelectOptions } from "./options.js"
 
-export const KEY_SUPPORTED_PROVIDERS = ["gemini", "groq", "deepseek"]
+export const KEY_SUPPORTED_PROVIDERS = ["gemini", "groq", "deepseek", "ollama"]
 
 function assertNotCancelled(value) {
     if (p.isCancel(value)) {

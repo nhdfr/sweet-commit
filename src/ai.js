@@ -7,12 +7,13 @@ export async function generateCommitMessage(
     diff,
     style = "adaptive",
     humanLikeCommit = true,
+    refinementNote = "",
 ) {
-    if (!agent || !agent.apiKey) {
+    if (!agent || (!agent.apiKey && agent.provider !== "ollama")) {
         throw new Error("No AI agent configured with a valid API key.")
     }
 
-    const prompt = buildPrompt(diff, style, humanLikeCommit)
+    const prompt = buildPrompt(diff, style, humanLikeCommit, refinementNote)
     const primaryModel = String(agent.model || "").trim()
     const fallbackModel = String(agent.fallbackModel || "").trim()
 
