@@ -9,99 +9,12 @@ import {
     loadConfig,
     MODEL_CATALOG,
 } from "./utils.js"
+import {
+    selectModelFromCatalog,
+    selectProviderApiKey,
+} from "./model/selector.js"
 
 const API_KEY_PROVIDERS = ["gemini", "groq", "deepseek"]
-
-async function selectModel(message, allowNone = false) {
-    const options = []
-    if (allowNone) {
-        options.push({
-            value: "__none__",
-            label: "None",
-            hint: "Do not configure a fallback model",
-        })
-    }
-
-    options.push(
-        ...MODEL_CATALOG.map((entry) => ({
-            value: `${entry.provider}:${entry.model}`,
-            label: `${entry.provider} | ${entry.model}`,
-            hint: "free model",
-        })),
-    )
-
-    options.push({
-        value: "__custom__",
-        label: "Custom model",
-        hint: "Enter model name manually",
-    })
-
-    const choice = await p.select({ message, options })
-    if (p.isCancel(choice)) {
-        p.cancel("Operation cancelled.")
-        process.exit(0)
-    }
-
-    if (choice === "__none__") {
-        return null
-    }
-
-    if (choice === "__custom__") {
-        const customModel = await p.text({
-            message: "Enter model name",
-            placeholder: "gemini-2.5-flash",
-            validate: (value) =>
-                String(value || "").trim().length > 0
-                    ? undefined
-                    : "Model is required",
-        })
-        if (p.isCancel(customModel)) {
-            p.cancel("Operation cancelled.")
-            process.exit(0)
-        }
-
-        const provider = await p.select({
-            message: "Select provider for this model",
-            options: API_KEY_PROVIDERS.map((name) => ({
-                value: name,
-                label: name,
-            })),
-        })
-        if (p.isCancel(provider)) {
-            p.cancel("Operation cancelled.")
-            process.exit(0)
-        }
-
-        return {
-            provider: String(provider),
-            model: String(customModel).trim(),
-        }
-    }
-
-    const [provider, ...modelParts] = String(choice).split(":")
-    return {
-        provider,
-        model: modelParts.join(":").trim(),
-    }
-}
-
-async function askApiKey(provider, existingValue = "") {
-    const apiKey = await p.password({
-        message: `${provider.toUpperCase()} API key\nGet your API key here: ${getProviderApiUrl(provider)}`,
-        validate: (value) =>
-            String(value || "").trim() || existingValue
-                ? undefined
-                : "API key is required",
-    })
-
-    if (p.isCancel(apiKey)) {
-        p.cancel("Operation cancelled.")
-        process.exit(0)
-    }
-
-    const trimmed = String(apiKey).trim()
-    return trimmed || existingValue
-}
 
 async function main() {
     p.intro("sweet-commit setup")
@@ -113,17 +26,26 @@ async function main() {
 
     const existingConfig = await loadConfig()
     const apiKeys = getAllProviderKeys(existingConfig)
+    const providersByModel = new Map()
 
-    const primary = await selectModel("Select primary model")
-    apiKeys[primary.provider] = await askApiKey(
+    const primary = await selectModelFromCatalog({
+        message: "Select primary model",
+        allowNone: false,
+        providersByModel,
+    })
+    apiKeys[primary.provider] = await selectProviderApiKey(
         primary.provider,
         apiKeys[primary.provider],
     )
 
-    const fallback = await selectModel("Select fallback model", true)
+    const fallback = await selectModelFromCatalog({
+        message: "Select fallback model",
+        allowNone: true,
+        providersByModel,
+    })
     const fallbackModel = fallback ? fallback.model : ""
     if (fallback) {
-        apiKeys[fallback.provider] = await askApiKey(
+        apiKeys[fallback.provider] = await selectProviderApiKey(
             fallback.provider,
             apiKeys[fallback.provider],
         )

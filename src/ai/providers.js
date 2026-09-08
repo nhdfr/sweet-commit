@@ -1,5 +1,19 @@
 import { GoogleGenAI } from "@google/genai"
 
+const SYSTEM_PROMPT =
+    "You are an expert engineer writing conventional commit messages from git diffs. Always return plain text commit message output only."
+
+const PROVIDER_CONFIG = {
+    groq: {
+        temperature: 0.3,
+        maxTokens: 1024,
+    },
+    deepseek: {
+        temperature: 0.2,
+        maxTokens: 1024,
+    },
+}
+
 async function generateWithGemini(agent, prompt) {
     const ai = new GoogleGenAI({ apiKey: agent.apiKey })
     const result = await ai.models.generateContent({
@@ -16,14 +30,19 @@ async function generateWithOpenAICompatible(agent, prompt) {
         "Content-Type": "application/json",
     }
 
+    const providerConfig = PROVIDER_CONFIG[agent.provider] || {
+        temperature: 0.2,
+        maxTokens: 1024,
+    }
+
     const body = {
         model: agent.model,
-        temperature: 0.2,
+        temperature: providerConfig.temperature,
+        max_tokens: providerConfig.maxTokens,
         messages: [
             {
                 role: "system",
-                content:
-                    "you are an expert engineer writing conventional commit messages from git diffs. Always return plain text commit message output only.",
+                content: SYSTEM_PROMPT,
             },
             {
                 role: "user",

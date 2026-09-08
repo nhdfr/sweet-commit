@@ -1,39 +1,14 @@
 import { getModelProvider } from "../utils.js"
 import { p } from "../prompts.js"
+import { KEY_SUPPORTED_PROVIDERS } from "../config/constants.js"
 import { toSelectOptions } from "./options.js"
 
-export const KEY_SUPPORTED_PROVIDERS = ["gemini", "groq", "deepseek"]
+export { KEY_SUPPORTED_PROVIDERS }
 
 function assertNotCancelled(value) {
     if (p.isCancel(value)) {
         p.cancel("Operation cancelled.")
         process.exit(0)
-    }
-}
-
-async function chooseCustomModel(promptMessage, placeholder) {
-    const typed = await p.text({
-        message: promptMessage,
-        placeholder,
-        validate: (value) =>
-            String(value || "").trim().length > 0
-                ? undefined
-                : "Model is required",
-    })
-    assertNotCancelled(typed)
-
-    const providerChoice = await p.select({
-        message: "Select provider",
-        options: KEY_SUPPORTED_PROVIDERS.map((provider) => ({
-            value: provider,
-            label: provider,
-        })),
-    })
-    assertNotCancelled(providerChoice)
-
-    return {
-        model: String(typed).trim(),
-        provider: String(providerChoice).trim(),
     }
 }
 
@@ -115,4 +90,30 @@ export async function selectFallbackModel(
     }
 
     return chooseCustomModel("Enter fallback model name", "deepseek-chat")
+}
+
+async function chooseCustomModel(promptMessage, placeholder) {
+    const typed = await p.text({
+        message: promptMessage,
+        placeholder,
+        validate: (value) =>
+            String(value || "").trim().length > 0
+                ? undefined
+                : "Model is required",
+    })
+    assertNotCancelled(typed)
+
+    const providerChoice = await p.select({
+        message: "Select provider",
+        options: KEY_SUPPORTED_PROVIDERS.map((provider) => ({
+            value: provider,
+            label: provider,
+        })),
+    })
+    assertNotCancelled(providerChoice)
+
+    return {
+        model: String(typed).trim(),
+        provider: String(providerChoice).trim(),
+    }
 }

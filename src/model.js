@@ -9,7 +9,7 @@ import {
     upsertConfigEntries,
 } from "./utils.js"
 import { buildProvidersByModel } from "./model/options.js"
-import { ensureProviderKey } from "./model/keys.js"
+import { selectProviderApiKey } from "./model/selector.js"
 import { selectFallbackModel, selectPrimaryModel } from "./model/selection.js"
 
 function printCurrentSettings(agents, defaultModel, fallbackModel) {
@@ -113,8 +113,8 @@ export async function runModelCommand(subcommand = "") {
         fallbackProvider,
     } = normalizeSelectedModels(primarySelection, fallbackSelection)
 
-    await ensureProviderKey(primaryProvider, storedKeys)
-    await ensureProviderKey(fallbackProvider, storedKeys)
+    await selectProviderApiKey(primaryProvider, storedKeys)
+    await selectProviderApiKey(fallbackProvider, storedKeys)
 
     const { configFile } = await upsertConfigEntries({
         DEFAULT_MODEL: primaryModel,

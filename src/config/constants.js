@@ -17,9 +17,8 @@ export const PROVIDER_DEFAULTS = {
 
 export const MODEL_CATALOG = [
     { provider: "gemini", model: "gemini-2.5-flash" },
-    { provider: "gemini", model: "gemini-2.0-flash" },
-    { provider: "groq", model: "llama-3.3-70b-versatile" },
-    { provider: "groq", model: "llama-3.1-8b-instant" },
+    { provider: "groq", model: "openai/gpt-oss-120b" },
+    { provider: "groq", model: "openai/gpt-oss-20b" },
     { provider: "deepseek", model: "deepseek-chat" },
     { provider: "deepseek", model: "deepseek-reasoner" },
 ]
@@ -35,3 +34,5 @@ export const PROVIDER_API_URLS = {
     groq: "https://console.groq.com/keys",
     deepseek: "https://platform.deepseek.com/api_keys",
 }
+
+export const KEY_SUPPORTED_PROVIDERS = ["gemini", "groq", "deepseek"]
