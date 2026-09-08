@@ -1,6 +1,6 @@
 {
     "name": "sweet-commit",
-    "version": "2.3.4",
+    "version": "2.3.6",
     "description": "AI-powered commit messages that just work. One command, perfect commits, every time.",
     "main": "index.js",
     "type": "module",
@@ -24,15 +24,15 @@
         "automation",
         "developer-tools"
     ],
-    "author": "bashneko",
+    "author": "h3yng",
     "license": "GNU General Public License v3.0",
     "repository": {
         "type": "git",
-        "url": "https://github.com/bashnko/sweet-commit.git"
+        "url": "https://github.com/h3yng/sweet-commit.git"
     },
-    "homepage": "https://github.com/bashnko/sweet-commit",
+    "homepage": "https://github.com/h3yng/sweet-commit",
     "bugs": {
-        "url": "https://github.com/bashnko/sweet-commit/issues"
+        "url": "https://github.com/h3yng/sweet-commit/issues"
     },
     "dependencies": {
         "@clack/prompts": "^0.11.0",
